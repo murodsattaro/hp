@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeadWind MDM Monitor</title>
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/main.min.css' rel='stylesheet' />
+    <link href='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/main.min.css' rel='stylesheet' />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .online { color: #27ae60; }
+        .offline { color: #e74c3c; }
+        .total { color: #3498db; }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.active {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+        }
+
+        .devices-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .devices-container h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .device-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #e74c3c;
+            transition: all 0.3s ease;
+        }
+
+        .device-card.online {
+            border-left-color: #27ae60;
+        }
+
+        .device-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .device-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #2c3e50;
+        }
+
+        .device-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .device-status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .device-status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .device-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .device-info span {
+            padding: 5px 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .report-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .report-select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            background: white;
+        }
+
+        .report-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .report-stat {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .report-stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .report-stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .device-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        .device-stats {
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .stats-section {
+            margin-bottom: 10px;
+        }
+
+        .stats-section h4 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .stats-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 5px;
+            font-size: 0.85em;
+        }
+
+        .stats-details span {
+            background: #f8f9fa;
+            padding: 5px 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .date-range-picker {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .date-range-picker.active {
+            display: block;
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .date-inputs input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .date-inputs button {
+            padding: 8px 15px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .date-inputs button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .custom-stats {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .custom-stats h5 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .custom-stats-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        .custom-stats-details span {
+            background: white;
+            padding: 8px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .calendar-modal.active {
+            display: flex;
+        }
+
+        .calendar-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .calendar-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-right: 20px;
+        }
+
+        .device-select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            min-width: 300px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .month-select, .year-select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            min-width: 120px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .device-select:hover, .month-select:hover, .year-select:hover {
+            border-color: #667eea;
+        }
+
+        .device-select:focus, .month-select:focus, .year-select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .calendar-close {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            color: #666;
+        }
+
+        .calendar-close:hover {
+            color: #333;
+        }
+
+        .fc-day-online {
+            background-color: rgba(39, 174, 96, 0.15) !important;
+        }
+
+        .fc-day-online .fc-daygrid-day-number {
+            color: #27ae60 !important;
+            font-weight: bold;
+        }
+
+        .fc-day-offline {
+            background-color: rgba(231, 76, 60, 0.15) !important;
+        }
+
+        .fc-day-offline .fc-daygrid-day-number {
+            color: #e74c3c !important;
+            font-weight: bold;
+        }
+
+        .calendar-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .calendar-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar-btn i {
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .calendar-controls {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+
+            .device-select, .month-select, .year-select {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .calendar-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .calendar-close {
+                align-self: flex-end;
+            }
+        }
+
+        .calendar-device-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .device-info-header {
+            margin-bottom: 15px;
+        }
+
+        .device-info-header h3 {
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin: 0;
+        }
+
+        .device-info-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .device-info-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .device-info-item strong {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .device-status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .device-status-badge.online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .device-status-badge.offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
+            .device-info-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📱 HeadWind MDM Monitor</h1>
+                <p>Qurilmalar holati va statistikasi</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number total" id="totalDevices">-</div>
+                    <div class="stat-label">Jami Qurilmalar</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number online" id="onlineDevices">-</div>
+                    <div class="stat-label">Online</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number offline" id="offlineDevices">-</div>
+                    <div class="stat-label">Offline</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="onlinePercentage">-</div>
+                    <div class="stat-label">Online %</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <h3>Boshqaruv</h3>
+                <div class="button-group">
+                    <button class="btn active" onclick="loadDevices()" id="loadBtn">
+                        🔄 Qurilmalarni Yuklash
+                    </button>
+                    <button class="btn" onclick="loadStatistics()">
+                        📊 Statistika
+                    </button>
+                    <button class="btn" onclick="testConnection()">
+                        🔌 Ulanishni Tekshirish
+                    </button>
+                    <button class="btn" onclick="toggleAutoRefresh()">
+                        ⚡ Avto Yangilash
+                    </button>
+                    <button class="calendar-btn" onclick="showCalendar()">
+                        📅 Kalendar
+                    </button>
+                </div>
+            </div>
+
+            <div class="devices-container">
+                <h3>Qurilmalar Ro'yxati</h3>
+                <div id="devicesContent">
+                    <div class="loading">Ma'lumotlar yuklanmoqda...</div>
+                </div>
+            </div>
+
+            <div class="report-container">
+                <div class="report-header">
+                    <h3>Hisobot</h3>
+                    <select class="report-select" onchange="loadReport(this.value)">
+                        <option value="weekly">Haftalik</option>
+                        <option value="monthly">Oylik</option>
+                    </select>
+                </div>
+                <div id="reportContent">
+                    <div class="loading">Hisobot yuklanmoqda...</div>
+                </div>
+            </div>
+
+            <div class="calendar-modal" id="calendarModal">
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div class="calendar-controls">
+                            <select class="device-select" id="deviceSelect" onchange="updateCalendarDevice()">
+                                <option value="">Qurilmani tanlang</option>
+                            </select>
+                            <select class="month-select" id="monthSelect" onchange="updateCustomCalendar()">
+                                <option value="0">Yanvar</option>
+                                <option value="1">Fevral</option>
+                                <option value="2">Mart</option>
+                                <option value="3">Aprel</option>
+                                <option value="4">May</option>
+                                <option value="5">Iyun</option>
+                                <option value="6">Iyul</option>
+                                <option value="7">Avgust</option>
+                                <option value="8">Sentabr</option>
+                                <option value="9">Oktabr</option>
+                                <option value="10">Noyabr</option>
+                                <option value="11">Dekabr</option>
+                            </select>
+                            <select class="year-select" id="yearSelect" onchange="updateCustomCalendar()"></select>
+                        </div>
+                        <button class="calendar-close" onclick="hideCalendar()">×</button>
+                    </div>
+                    
+                    <div class="calendar-device-info" id="calendarDeviceInfo">
+                        <div class="device-info-header">
+                            <h3>Qurilma ma'lumotlari</h3>
+                        </div>
+                        <div class="device-info-content">
+                            Qurilmani tanlang
+                        </div>
+                    </div>
+
+                    <div class="custom-calendar" id="customCalendar">
+                        <table class="calendar-table">
+                            <thead>
+                                <tr>
+                                    <th>Du</th>
+                                    <th>Se</th>
+                                    <th>Ch</th>
+                                    <th>Pa</th>
+                                    <th>Ju</th>
+                                    <th>Sh</th>
+                                    <th>Ya</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calendarDays">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/main.min.js'></script>
+        <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/main.min.js'></script>
+
+        <script>
+        const API_BASE = 'http://192.168.7.14:5000/api';
+        let autoRefreshInterval = null;
+        let autoRefreshEnabled = false;
+
+        // Sahifa yuklanganda
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDevices();
+            loadStatistics();
+            loadReport('weekly');
+        });
+
+        // Qurilmalarni yuklash
+        async function loadDevices() {
+            const content = document.getElementById('devicesContent');
+            content.innerHTML = '<div class="loading">Ma\'lumotlar yuklanmoqda...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/devices`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentDevices = data.devices; // Store devices for calendar use
+                    displayDevices(data.devices);
+                    updateStatistics(data);
+                    
+                    // Update device select if calendar is open
+                    if (document.getElementById('calendarModal').classList.contains('active')) {
+                        updateDeviceSelect();
+                        if (selectedDevice) {
+                            // Re-select the current device if one was selected
+                            document.getElementById('deviceSelect').value = selectedDevice.id;
+                            updateCalendarDevice();
+                        }
+                    }
+                } else {
+                    content.innerHTML = `<div class="error">Xato: ${data.error}</div>`;
+                }
+            } catch (error) {
+                content.innerHTML = `<div class="error">Ulanish xatosi: ${error.message}</div>`;
+            }
+        }
+
+        // Qurilmalarni ko'rsatish
+        function displayDevices(devices) {
+            const content = document.getElementById('devicesContent');
+            
+            if (devices.length === 0) {
+                content.innerHTML = '<div class="loading">Qurilmalar topilmadi</div>';
+                return;
+            }
+
+            const deviceCards = devices.map(device => {
+                // Statistika ma'lumotlarini formatlash
+                const formatStats = (stats) => {
+                    if (!stats) return 'Ma\'lumot yo\'q';
+                    return `
+                        <div class="stats-details">
+                            <span>⏱️ Online: ${Number(stats.online_hours || 0).toFixed(1)} soat</span>
+                            <span>⏳ Offline: ${Number(stats.offline_hours || 0).toFixed(1)} soat</span>
+                            <span>📊 Jami: ${Number(stats.total_hours || 0).toFixed(1)} soat</span>
+                        </div>
+                    `;
+                };
+
+                // Maxsus sana oralig'i uchun statistika formati
+                const formatCustomStats = (stats) => {
+                    if (!stats) return '';
+                    return `
+                        <div class="custom-stats-details">
+                            <span>⏱️ Online: ${Number(stats.online_hours || 0).toFixed(1)} soat (${Math.round(Number(stats.online_minutes || 0))} daqiqa)</span>
+                            <span>⏳ Offline: ${Number(stats.offline_hours || 0).toFixed(1)} soat (${Math.round(Number(stats.offline_minutes || 0))} daqiqa)</span>
+                            <span>📊 Jami: ${Number(stats.total_hours || 0).toFixed(1)} soat (${Math.round(Number(stats.total_minutes || 0))} daqiqa)</span>
+                        </div>
+                    `;
+                };
+
+                return `
+                    <div class="device-card ${device.online ? 'online' : 'offline'}">
+                        <div class="device-header">
+                            <div class="device-name">${device.number || 'Noma\'lum'}</div>
+                            <div class="device-status ${device.online ? 'online' : 'offline'}">
+                                ${device.online ? '🟢 Online' : '🔴 Offline'}
+                            </div>
+                        </div>
+                        <div class="device-info">
+                            <span><strong>ID:</strong> ${device.id}</span>
+                            <span><strong>IMEI:</strong> ${device.imei || 'N/A'}</span>
+                            <span><strong>Telefon:</strong> ${device.phone || 'N/A'}</span>
+                            <span><strong>IP:</strong> ${device.publicip || 'N/A'}</span>
+                            <span><strong>Oxirgi faoliyat:</strong> ${device.last_seen}</span>
+                            <span><strong>Tavsif:</strong> ${device.description || 'N/A'}</span>
+                        </div>
+                        <div class="device-stats">
+                            <div class="stats-section">
+                                <h4>📅 Bugungi statistika</h4>
+                                ${formatStats(device.today_stats)}
+                            </div>
+                            <div class="stats-section">
+                                <h4>📊 Haftalik statistika</h4>
+                                ${formatStats(device.weekly_stats)}
+                            </div>
+                            <div class="stats-section">
+                                <h4>📈 Oylik statistika</h4>
+                                ${formatStats(device.monthly_stats)}
+                            </div>
+                            <div class="stats-section">
+                                <h4>🔍 Maxsus davr statistikasi</h4>
+                                <div class="date-range-picker" id="dateRange-${device.id}">
+                                    <div class="date-inputs">
+                                        <input type="date" id="startDate-${device.id}" class="start-date">
+                                        <input type="date" id="endDate-${device.id}" class="end-date">
+                                        <button onclick="loadCustomStats(${device.id})">Ko'rish</button>
+                                    </div>
+                                    <div class="custom-stats" id="customStats-${device.id}">
+                                        <h5>Tanlangan davr uchun statistika</h5>
+                                        <div id="customStatsContent-${device.id}">
+                                            Sanani tanlang
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn" onclick="toggleDatePicker(${device.id})">
+                                    📅 Sana tanlash
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            content.innerHTML = `<div class="device-grid">${deviceCards}</div>`;
+        }
+
+        // Statistikani yangilash
+        function updateStatistics(data) {
+            document.getElementById('totalDevices').textContent = data.total_devices;
+            document.getElementById('onlineDevices').textContent = data.online_devices;
+            document.getElementById('offlineDevices').textContent = data.offline_devices;
+            
+            const percentage = data.total_devices > 0 ? 
+                Math.round((data.online_devices / data.total_devices) * 100) : 0;
+            document.getElementById('onlinePercentage').textContent = percentage + '%';
+        }
+
+        // Statistikani yuklash
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/statistics`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.statistics;
+                    document.getElementById('totalDevices').textContent = stats.total_devices;
+                    document.getElementById('onlineDevices').textContent = stats.online_devices;
+                    document.getElementById('offlineDevices').textContent = stats.offline_devices;
+                    document.getElementById('onlinePercentage').textContent = stats.online_percentage + '%';
+                }
+            } catch (error) {
+                console.error('Statistika yuklashda xato:', error);
+            }
+        }
+
+        // Hisobotni yuklash
+        async function loadReport(type) {
+            const content = document.getElementById('reportContent');
+            content.innerHTML = '<div class="loading">Hisobot yuklanmoqda...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/report?type=${type}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayReport(data.report);
+                } else {
+                    content.innerHTML = `<div class="error">Xato: ${data.error}</div>`;
+                }
+            } catch (error) {
+                content.innerHTML = `<div class="error">Ulanish xatosi: ${error.message}</div>`;
+            }
+        }
+
+        // Hisobotni ko'rsatish
+        function displayReport(report) {
+            const content = document.getElementById('reportContent');
+            
+            const reportHtml = `
+                <div class="report-stats">
+                    <div class="report-stat">
+                        <div class="report-stat-number total">${report.total_devices}</div>
+                        <div class="report-stat-label">Jami Qurilmalar</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="report-stat-number online">${report.active_devices}</div>
+                        <div class="report-stat-label">Faol Qurilmalar</div>
+                    </div>
+                    <div class="report-stat">
+                        <div class="report-stat-number offline">${report.inactive_devices}</div>
+                        <div class="report-stat-label">Faol Emas</div>
+                    </div>
+                </div>
+                <p><strong>Davr:</strong> ${report.period}</p>
+                <p><strong>Hisobot turi:</strong> ${report.type === 'weekly' ? 'Haftalik' : 'Oylik'}</p>
+            `;
+            
+            content.innerHTML = reportHtml;
+        }
+
+        // Ulanishni tekshirish
+        async function testConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/test-connection`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Database ulanishi muvaffaqiyatli!\n\n' + data.message);
+                } else {
+                    alert('❌ Database ulanish xatosi!\n\n' + data.message);
+                }
+            } catch (error) {
+                alert('❌ Server ulanish xatosi!\n\n' + error.message);
+            }
+        }
+
+        // Avto yangilashni yoqish/o'chirish
+        function toggleAutoRefresh() {
+            const btn = event.target;
+            
+            if (autoRefreshEnabled) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshEnabled = false;
+                btn.textContent = '⚡ Avto Yangilash';
+                btn.classList.remove('active');
+            } else {
+                autoRefreshInterval = setInterval(() => {
+                    loadDevices();
+                    loadStatistics();
+                }, 30000); // 30 sekund
+                
+                autoRefreshEnabled = true;
+                btn.textContent = '⏹️ Avto Yangilashni To\'xtatish';
+                btn.classList.add('active');
+            }
+        }
+
+        // Sana tanlash panelini ko'rsatish/yashirish
+        function toggleDatePicker(deviceId) {
+            const dateRange = document.getElementById(`dateRange-${deviceId}`);
+            dateRange.classList.toggle('active');
+        }
+
+        // Maxsus davr uchun statistikani yuklash
+        async function loadCustomStats(deviceId) {
+            const startDate = document.getElementById(`startDate-${deviceId}`).value;
+            const endDate = document.getElementById(`endDate-${deviceId}`).value;
+            const content = document.getElementById(`customStatsContent-${deviceId}`);
+            
+            if (!startDate || !endDate) {
+                content.innerHTML = 'Iltimos, sanani tanlang';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/device-stats/${deviceId}?start_date=${startDate}&end_date=${endDate}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    content.innerHTML = `
+                        <div class="custom-stats-details">
+                            <span>⏱️ Online: ${Number(data.stats.online_hours || 0).toFixed(1)} soat (${Math.round(Number(data.stats.online_minutes || 0))} daqiqa)</span>
+                            <span>⏳ Offline: ${Number(data.stats.offline_hours || 0).toFixed(1)} soat (${Math.round(Number(data.stats.offline_minutes || 0))} daqiqa)</span>
+                            <span>📊 Jami: ${Number(data.stats.total_hours || 0).toFixed(1)} soat (${Math.round(Number(data.stats.total_minutes || 0))} daqiqa)</span>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `Xatolik: ${data.error}`;
+                }
+            } catch (error) {
+                content.innerHTML = `Ulanish xatosi: ${error.message}`;
+            }
+        }
+
+        // Klaviatura tugmalari
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'r') {
+                event.preventDefault();
+                loadDevices();
+            }
+        });
+
+        let selectedDevice = null;
+        let currentDevices = [];
+        let calendarData = {};
+
+        // Kalendar ko'rsatish
+        function showCalendar() {
+            document.getElementById('calendarModal').classList.add('active');
+            updateDeviceSelect();
+            updateYearSelect();
+            updateMonthSelect();
+            updateCustomCalendar();
+        }
+
+        // Kalendar yashirish
+        function hideCalendar() {
+            document.getElementById('calendarModal').classList.remove('active');
+        }
+
+        // Yil tanlovini yangilash
+        function updateYearSelect() {
+            const yearSelect = document.getElementById('yearSelect');
+            const currentYear = new Date().getFullYear();
+            yearSelect.innerHTML = '';
+            
+            // Last 5 years and next 5 years
+            for (let year = currentYear - 5; year <= currentYear + 5; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear) {
+                    option.selected = true;
+                }
+                yearSelect.appendChild(option);
+            }
+        }
+
+        // Oy tanlovini yangilash
+        function updateMonthSelect() {
+            const monthSelect = document.getElementById('monthSelect');
+            const currentMonth = new Date().getMonth();
+            monthSelect.value = currentMonth;
+        }
+
+        // Qurilmalar ro'yxatini yangilash
+        function updateDeviceSelect() {
+            const select = document.getElementById('deviceSelect');
+            select.innerHTML = '<option value="">Qurilmani tanlang</option>';
+            
+            // Sort devices by number for better organization
+            const sortedDevices = [...currentDevices].sort((a, b) => {
+                return (a.number || '').localeCompare(b.number || '');
+            });
+            
+            sortedDevices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.id;
+                option.textContent = device.number || 'Qurilma ' + device.id;
+                select.appendChild(option);
+            });
+        }
+
+        // Qurilma ma'lumotlarini yangilash
+        function updateCalendarDevice() {
+            const deviceId = document.getElementById('deviceSelect').value;
+            const deviceInfoContent = document.getElementById('calendarDeviceInfo').querySelector('.device-info-content');
+            
+            if (!deviceId) {
+                deviceInfoContent.innerHTML = 'Qurilmani tanlang';
+                selectedDevice = null;
+                updateCustomCalendar();
+                return;
+            }
+
+            selectedDevice = currentDevices.find(d => d.id === parseInt(deviceId));
+            if (!selectedDevice) return;
+
+            // Format device statistics
+            const formatStats = (stats) => {
+                if (!stats) return 'Ma\'lumot yo\'q';
+                return `
+                    <div class="device-info-item">
+                        <strong>Online:</strong> ${Number(stats.online_hours || 0).toFixed(1)} soat
+                    </div>
+                    <div class="device-info-item">
+                        <strong>Offline:</strong> ${Number(stats.offline_hours || 0).toFixed(1)} soat
+                    </div>
+                    <div class="device-info-item">
+                        <strong>Jami:</strong> ${Number(stats.total_hours || 0).toFixed(1)} soat
+                    </div>
+                `;
+            };
+
+            // Display device information
+            deviceInfoContent.innerHTML = `
+                <div class="device-info-item">
+                    <strong>Qurilma nomi:</strong> ${selectedDevice.number || 'Noma\'lum'}
+                </div>
+                <div class="device-info-item">
+                    <strong>Holati:</strong>
+                    <span class="device-status-badge ${selectedDevice.online ? 'online' : 'offline'}">
+                        ${selectedDevice.online ? '🟢 Online' : '🔴 Offline'}
+                    </span>
+                </div>
+                <div class="device-info-item">
+                    <strong>ID:</strong> ${selectedDevice.id}
+                </div>
+                <div class="device-info-item">
+                    <strong>IMEI:</strong> ${selectedDevice.imei || 'N/A'}
+                </div>
+                <div class="device-info-item">
+                    <strong>Telefon:</strong> ${selectedDevice.phone || 'N/A'}
+                </div>
+                <div class="device-info-item">
+                    <strong>IP:</strong> ${selectedDevice.publicip || 'N/A'}
+                </div>
+                <div class="device-info-item">
+                    <strong>Oxirgi faoliyat:</strong> ${selectedDevice.last_seen}
+                </div>
+                <div class="device-info-item">
+                    <strong>Tavsif:</strong> ${selectedDevice.description || 'N/A'}
+                </div>
+                <div class="device-info-section">
+                    <strong>Bugungi statistika:</strong>
+                    ${formatStats(selectedDevice.today_stats)}
+                </div>
+            `;
+
+            updateCustomCalendar();
+        }
+
+        // Kalendar kunlarini yangilash
+        async function updateCustomCalendar() {
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const calendarDays = document.getElementById('calendarDays');
+            
+            // Clear previous calendar
+            calendarDays.innerHTML = '';
+            
+            // Get first day of month and total days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const totalDays = lastDay.getDate();
+            
+            // Get day of week for first day (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+            let firstDayOfWeek = firstDay.getDay();
+            // Convert Sunday from 0 to 7
+            firstDayOfWeek = firstDayOfWeek === 0 ? 7 : firstDayOfWeek;
+            // Adjust to start week from Monday
+            firstDayOfWeek--;
+            
+            // If device is selected, get its stats
+            let deviceStats = {};
+            if (selectedDevice) {
+                const startDate = formatDate(firstDay);
+                const endDate = formatDate(lastDay);
+                try {
+                    const response = await fetch(`${API_BASE}/device-stats/${selectedDevice.id}?start_date=${startDate}&end_date=${endDate}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        deviceStats = data.stats;
+                    }
+                } catch (error) {
+                    console.error('Statistika yuklashda xato:', error);
+                }
+            }
+            
+            let currentRow;
+            let dayCount = 1;
+            const totalWeeks = Math.ceil((firstDayOfWeek + totalDays) / 7);
+            
+            // Create calendar rows
+            for (let week = 0; week < totalWeeks; week++) {
+                currentRow = document.createElement('tr');
+                
+                // Create cells for each day of the week
+                for (let weekday = 0; weekday < 7; weekday++) {
+                    const cell = document.createElement('td');
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'calendar-day';
+                    
+                    if (week === 0 && weekday < firstDayOfWeek) {
+                        // Previous month days
+                        const prevMonthLastDay = new Date(year, month, 0);
+                        const day = prevMonthLastDay.getDate() - (firstDayOfWeek - weekday - 1);
+                        dayDiv.textContent = day;
+                        dayDiv.classList.add('other-month');
+                    } else if (dayCount > totalDays) {
+                        // Next month days
+                        dayDiv.textContent = dayCount - totalDays;
+                        dayDiv.classList.add('other-month');
+                        dayCount++;
+                    } else {
+                        // Current month days
+                        dayDiv.textContent = dayCount;
+                        
+                        if (selectedDevice) {
+                            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayCount).padStart(2, '0')}`;
+                            if (deviceStats[dateStr]) {
+                                dayDiv.classList.add(deviceStats[dateStr].online ? 'online' : 'offline');
+                            }
+                        }
+                        
+                        dayCount++;
+                    }
+                    
+                    cell.appendChild(dayDiv);
+                    currentRow.appendChild(cell);
+                }
+                
+                calendarDays.appendChild(currentRow);
+            }
+        }
+
+        // Sana formati
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        </script>
+    </body>
+</html>
